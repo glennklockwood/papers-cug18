@@ -1,0 +1,5 @@
+\section{Introduction}
+
+The current state of the art in I/O performance analysis involves using a variety of purpose-built tools to profile or analyze specific components within the I/O subsystem.  For example, Darshan~\cite{Carns2009} is often deployed to profile application I/O patterns, and LMT can provide server-side Lustre load data to administrators~\cite{Keopp2014}.  However, combining multiple tools to present an holistic view of I/O performance to users typically requires an I/O expert who understands the outputs of each tool.
+
+The Total Knowledge of I/O (TOKIO) framework~\cite{Lockwood2017} is being developed to provide a software framework that connects data from such component-level monitoring tools and presents it to downstream analysis in a coherent fashion.  Rather than build a universal monitoring solution and deploy a scalable datastore to retain all monitoring data, TOKIO connects to \emph{existing} best-in-class monitoring tools and databases, indexes these tools' data, and presents the data from multiple connectors as a single, semantically coherent view to downstream analysis tools and user interfaces.

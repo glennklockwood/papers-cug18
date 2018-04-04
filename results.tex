@@ -1,14 +1,4 @@
-\section{Early Results}
-
-pytokio provides connectors for the following tools either available as community-supported open-source tools or pre-installed on Cray systems:
-
-\begin{itemize}
-\item \textbf{Cray SDB} for node topology
-\item \textbf{Slurm} for job ID and node list mappings
-\item \textbf{Darshan} for application-level I/O profiling
-\item \textbf{Lustre} \texttt{lfs} and \texttt{lctl} for file system health
-\item \textbf{LMT} for server-side Lustre loads via the ClusterStor Lustre monitoring tool~\cite{Keopp2014}
-\end{itemize}
+\section{Results}
 
 An example of a TOKIO analysis application is pytokio's Unified Monitoring and Metrics Interface (UMAMI)~\cite{Lockwood2017} application, which connects the aforementioned tools to visualize I/O performance alongside other dimensions of system health and contention.  Figure \ref{fig:umami} demonstrates the output of UMAMI in a case where poor performance on November 14 coincided with significant server-side bandwidth contention, OSS CPU load, and metadata contention.  As will be detailed further, aligning performance data from Darshan with Lustre server-side data from LMT allows users to see how each I/O subsystem component affects performance for their jobs.
 % * <pcarns@gmail.com> 2018-01-19T16:21:36.773Z:

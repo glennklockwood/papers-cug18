@@ -1,14 +1,17 @@
 \documentclass[conference]{IEEEtran}
 
-\ifCLASSINFOpdf
-  \usepackage[pdftex]{graphicx}
-  \graphicspath{{figs/}}
-  \DeclareGraphicsExtensions{.pdf,.jpeg,.png}
-\else
-  \usepackage[dvips]{graphicx}
-  \graphicspath{{../eps/}}
-  \DeclareGraphicsExtensions{.eps}
-\fi
+\let\labelindent\relax % need this or enumitem doesn't work
+
+\usepackage{enumitem}
+\usepackage{graphicx}
+\graphicspath{{figs/}}
+\DeclareGraphicsExtensions{.pdf,.jpeg,.png}
+
+% todo notes
+\usepackage[colorinlistoftodos]{todonotes}
+\newcommand{\TODO}[1]{\todo[inline, color=yellow!40]{#1}}
+
+
 
 \begin{document}
 
@@ -18,9 +21,9 @@
 \IEEEauthorblockA{Lawrence Berkeley National Laboratory\\\{glock,njwright\}@lbl.gov
 }
 \and
-\IEEEauthorblockN{Shane Snyder, Philip Carns}
+\IEEEauthorblockN{Shane Snyder, George Brown, Kevin Harms, Philip Carns}
 \IEEEauthorblockA{Argonne National Laboratory\\
-\{ssnyder,carns\}@mcs.anl.gov}
+\{ssnyder,???,harms,carns\}@mcs.anl.gov}
 }
 
 \maketitle
@@ -29,13 +32,13 @@
 
 \input{introduction}
 
-% \input{architecture}
+\input{architecture}
 
 \input{results}
 
-% \input{conclusion}
+\input{conclusion}
 
-% \input{acknowledgments}
+\input{acknowledgments}
 
 \bibliographystyle{IEEEtran}
 

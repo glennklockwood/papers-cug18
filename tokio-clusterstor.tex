@@ -2,28 +2,41 @@
 
 \let\labelindent\relax % need this or enumitem doesn't work
 
-\usepackage{enumitem}
+\usepackage{enumitem} % allow us to un-indent bulleted/numbered lists
+\usepackage[noadjust]{cite} % merge references
+\usepackage{xfrac} % slanty fractions
+
+% insert pretty figures
 \usepackage{graphicx}
 \graphicspath{{figs/}}
 \DeclareGraphicsExtensions{.pdf,.jpeg,.png}
 
-% todo notes
+% enable todo notes via \TODO
 \usepackage[colorinlistoftodos]{todonotes}
 \newcommand{\TODO}[1]{\todo[inline, color=yellow!40]{#1}}
-
-
 
 \begin{document}
 
 \title{TOKIO on ClusterStor: Connecting Standard Tools to Enable Holistic I/O Performance Analysis}
 
-\author{\IEEEauthorblockN{Glenn K. Lockwood, Nicholas J. Wright}
-\IEEEauthorblockA{Lawrence Berkeley National Laboratory\\\{glock,njwright\}@lbl.gov
-}
+\author{
+\IEEEauthorblockN{Glenn K. Lockwood, Nicholas J. Wright}
+\IEEEauthorblockA{
+%National Energy Research Scientific Computing Center\\
+Lawrence Berkeley National Laboratory\\
+\{glock, njwright\}@lbl.gov}
 \and
-\IEEEauthorblockN{Shane Snyder, George Brown, Kevin Harms, Philip Carns}
-\IEEEauthorblockA{Argonne National Laboratory\\
-\{ssnyder,???,harms,carns\}@mcs.anl.gov}
+\IEEEauthorblockN{Shane Snyder, Philip Carns}
+\IEEEauthorblockA{
+%Mathematics and Computer Science Division\\
+Argonne National Laboratory\\
+\{ssnyder, carns\}@mcs.anl.gov}
+\and
+\IEEEauthorblockN{George Brown, Kevin Harms}
+\IEEEauthorblockA{
+%Argonne Leadership Computing Facility\\
+Argonne National Laboratory\\
+gbrown@anl.gov, harms@alcf.anl.gov}
 }
 
 \maketitle

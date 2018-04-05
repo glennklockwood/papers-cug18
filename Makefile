@@ -1,6 +1,6 @@
 all: tokio-clusterstor.pdf
 
-main.pdf: *.tex *.bib
+tokio-clusterstor.pdf: *.tex *.bib
 	latexmk -pdf tokio-clusterstor
 
 clean::

@@ -35,8 +35,8 @@ It follows that monitoring the traffic and load on each storage system server is
 
 Just as there are a variety of storage system implementations, there are a variety of implementation-specific tools for collecting these data.
 On Cray ClusterStor systems, Lustre Monitoring Tools (LMT) have historically collected this data~\cite{Keopp2014}, and Cray's newer Caribou and Seastream infrastructure is being positioned as the preferred alternative for the future~\cite{Flaskerud2017}.
-File system-specific tools for Cray DataWarp systems do not yet exist, but NERSC has demonstrated that collectd and ElasticSearch can collect and store device-level load data to similar ends~\cite{Whitney2016}.
-Unlike application behavior data, collecting storage system traffic at high frequency results in very low perceptible jitter; as a result, it is commonly recorded as time series data with an ideal sampling rate of under ${^1 / _{60} \textup{ Hz}}$~\cite{Madireddy2017}.
+File system-specific tools for Cray DataWarp systems do not yet exist, but NERSC has demonstrated that collectd and Elasticsearch can collect and store device-level load data to similar ends~\cite{Whitney2016}.
+Unlike application behavior data, collecting storage system traffic at high frequency results in very low perceptible jitter; as a result, it is commonly recorded as time series data with an ideal sampling rate greater than ${{^1 / _{60} \textup{ Hz}}}$~\cite{Madireddy2017}.
 
 \subsubsection{Storage system health}  \label{sec:architecture/components/fshealth}
 
@@ -45,7 +45,7 @@ Conditions such as storage device failovers (where a server may have to take on 
 
 As with storage system traffic data, storage system health data is often monitored using implementation-specific tools that understand architecture-specific failures that degrade performance.
 In the case of Lustre, the \texttt{lctl dl -t} command is sufficient to identify failed-over OSTs, while \texttt{lfs df} provides information that implicates performance loss due to high file system fullness.
-DataWarp can be monitored on a per-device basis using standard tools such as \texttt{smartctl} or vendor-specific tools such as the Intel SSD Data Center Tool~\cite{isdct}.
+DataWarp can be monitored on a per-device basis using standard tools such as \texttt{smartctl} or vendor-specific tools such as the Intel SSD Data Center Tool (ISDCT)~\cite{isdct}.
 
 \subsubsection{Job topology} \label{sec:architecture/components/topology}
 
@@ -67,12 +67,29 @@ LDMS~\cite{Agelastos2014ldms} has emerged as a scalable infrastructure for colle
 \subsection{TOKIO connectors} \label{sec:architecture/connectors}
 
 The foundational layer of TOKIO are \emph{connectors}, which are independent, modular components that provide an interface between the individual component-level tools described above and the higher-level TOKIO layers described later.
-Each connector understands the API of the component-level tool with which it interfaces
+Each connector interacts with the native interface of a component-level tool and provides data from that tool in the form of a tool-independent interface.
 
+As a concrete example, consider the LMT component-level tool which exposes Lustre file system workload data through a MySQL database.
+The LMT database connector is responsible for establishing and destroying connections to the MySQL database as well as tracking stateful entities such as database cursors.
+It also encodes the schema of the LMT database tables, effectively abstracting the specific workings of the LMT database from the information that the LMT tool provides.
+In this sense, a user of the LMT database connector can use a more semantically meaningful interface (e.g., \texttt{lmtdb.get\_mds\_data()} to retrieve metadata server loads) without having to craft SQL queries or write any boilerplate MySQL code.
 
-In the pytokio implementation of TOKIO, connectors are classes that expose each component-level tool's data as dictionaries, dataframes, and arrays.
+At the same time, the LMT database connector does \emph{not} modify the data retrieved from the LMT MySQL database before returning it.
+As such, using the LMT database connector still requires an understanding of the underlying LMT tool and the significance of the data it returns.
+This design decision restricts the role of connectors to being convenient interfaces into existing tools that eliminate the need to write glue code between component-level tools and higher-level analysis functions.
 
-pytokio provides connectors for the following tools either available as community-supported open-source tools or pre-installed on Cray systems:
+All connectors also provide serialization and deserialization methods for the tools to which they connect.
+This allows the data from a component-level tool to be stored for offline analysis, shared among collaborators, or cached for rapid subsequent accesses.
+Continuing with the LMT connector example, the data retrieved from the LMT MySQL database may be serialized to formats such as SQLite.
+Conversely, the LMT connector is also able to load LMT data from these alternative formats for use via the same downstream connector interface (e.g., \texttt{lmtdb.get\_mds\_data()}).
+This dramatically simplifies some tasks such as publishing analysis data that originated from a restricted-access data source or testing new analysis code.
+
+The pytokio implementation of TOKIO implements each connector as a Python class.
+Connectors which rely on stateful connections, such as those which load data from databases, generally wrap a variety of database interfaces and may or may not have caching interfaces.
+Connectors which operate statelessly, such as those that load and parse discrete log files, are generally derived from Python dictionaries or lists and self-populate when initialized.
+Where appropriate, these connectors also have methods to return different representations of themselves; for example, some connectors provide a \texttt{to\_dataframe()} method which returns the requested connector data as a Pandas DataFrame.
+
+The initial release of pytokio provides connectors for the following components either available as community-supported open-source tools or pre-installed on Cray systems:
 
 \begin{itemize}
 \item \textbf{Cray SDB} for node topology
@@ -82,10 +99,156 @@ pytokio provides connectors for the following tools either available as communit
 \item \textbf{LMT} for server-side Lustre loads via the ClusterStor Lustre monitoring tool~\cite{Keopp2014}
 \end{itemize}
 
+In addition, there are connectors for several site-specific implementations of common data sources:
+
+\begin{itemize}
+\item \textbf{NERSC Jobs DB} for job accounting information, stored in a MySQL database using a NERSC-specific schema
+\item \textbf{NERSC ISDCT} for aggregated collections of SMART and ISDCT text outputs, assembled using a NERSC-specific directory structure
+\item \textbf{collectd/Elasticsearch} for DataWarp server-side data collected using collectd, stored in an Elasticsearch database
+\end{itemize}
+
+Although the precise formats of these site-specific connectors assume the schema used by a NERSC-specific aggregation tool, they contain the logic necessary to create more generic connectors for consuming output from sources like smartctl and Elasticsearch.
+
 \subsection{TOKIO tools} \label{sec:architecture/tools}
 
-provide convenience functions and wrappers around TOKIO connectors.  For example, TOKIO provides a \texttt{topology} tool which converts a user job ID into a job radius by converting the job ID into a node list using the Slurm connector, and then the node list into topological coordinates using the Cray SDB connector.
+\begin{figure}
+    \centering
+    \includegraphics[width=0.7\columnwidth]{darshan-tool}
+    %\vspace{-.3in}
+    \caption{Darshan tools interface for converting a Slurm Job ID into Python interfaces into one or more Darshan logs.
+    User specifies a Slurm Job ID; the Darshan tool retrieves the date this job ran from Slurm, and then uses this date to find the location of any relevant Darshan logs in the site-wide Darshan log repository.
+    The tool then connects to each log and returns a dictionary-like Darshan connector instance for each.}
+    \label{fig:darshan-tool}
+    \vspace{-.2in}
+\end{figure}
 
-\subsection{Analysis applications} \label{sec:architecture/analysis}
+TOKIO \emph{tools} are implemented on top of connectors as a set of interfaces that are semantically closer to how analysis applications may wish to access component-level data.
+To this end, the TOKIO tools interfaces typically serve two purposes:
+encapsulating site-specific information on how certain data sources are indexed or where they may be found, and
+providing higher-level abstractions atop one or more connectors to mask the complexities or nuances of the underlying data sources.
 
-perform statistical, analytical, and visual performance analyses by using TOKIO connectors and tools to combine data from multiple components.
+\subsubsection{Encapsulating site-specific information}
+
+pytokio factors out all of its site-specific knowledge of connectors into a single site-specific configuration file.
+This configuration file is composed of arbitrary JSON-encoded key-value pairs which are loaded whenever pytokio is imported, and the specific meaning of any given key is defined by whichever tool accesses it.
+Thus, this site-specific configuration data does not prescribe any specific schema or semantic on site-specific information, and it does not contain any implicit assumptions about which connectors or tools are available on a given system.
+
+To illustrate this more concretely, consider the case of Darshan.
+When deployed system-wide, Darshan automatically saves users' output logs to a pre-defined, site-wide log repository.
+This repository is structured such that logs are indexed by year, month, and day, and Darshan encodes a variety of metadata (including the user, executable name, and job id) in each log file's file name.
+The Darshan \emph{tool} contains the logic required to find Darshan log files if given any or all of these metadata attributes.
+The top-level directory of the site-wide Darshan log repository (e.g., \texttt{{/global/darshanlogs/}} is site-specific and therefore stored in the pytokio configuration file.
+However, the directory structure within that log repository is dictated by Darshan itself, so the mapping between dates and subdirectories is implemented within the Darshan tool.
+
+\subsubsection{Providing higher-level abstractions atop connectors}
+
+The other role of TOKIO tools are to combine site-specific knowledge and multiple connectors to provide a simpler set of interfaces that are semantically closer to a question that an I/O user or administrator may actually ask.
+Continuing with the Darshan tool example from the previous section, such a question may be, "How many GB/sec did job \#2468187 achieve?"
+Answering this question involves several steps:
+
+\begin{enumerate}[leftmargin=*]
+\item Retrieve the start date for job id \#2468187 from the system workload manager or a job accounting database
+\item Look in the Darshan repository for logs that match jobid=2468187 on that date
+\item Run the \texttt{darshan-parser --perf} tool on the matching Darshan log and retrieve the estimated maximum I/O performance
+\end{enumerate}
+
+pytokio provides connectors and tools to accomplish each one of these tasks:
+
+\begin{enumerate}[leftmargin=*]
+\item The \textbf{Slurm connector} provides \texttt{get\_job\_startend()} which retrieves a job's start and end times when given a Slurm job id
+\item The \textbf{Darshan tools} provides \texttt{find\_darshanlogs()} which returns a list of matching Darshan logs when given a job id and the date on which that job ran
+\item The \textbf{Darshan connector} provides \texttt{darshan\_parser\_perf()} which retrieves I/O performance data from a single Darshan log
+\end{enumerate}
+
+Because this is such a routine process when analyzing application I/O performance, the Darshan tools interface implements this entire sequence in a single, higher-level function called \texttt{load\_darshanlogs()}.
+This function, depicted in Figure \ref{fig:darshan-tool}, effectively links two connectors (Slurm and Darshan) and provides a single function to answer the question of "how well did job \#2468187 perform?"
+This greatly simplifies the process of developing user-facing tools to analyze Darshan logs.
+Any analysis tool which uses application I/O performance and operates from job ids can replace hundreds of lines of boilerplate code with a single function call into the Darshan tool, and it alleviates users from having to understand the Darshan log repository directory structure to quickly find profiling data for their jobs.
+
+\subsubsection{Simplifying portability}
+
+TOKIO tools interfaces are also what facilitate portable, highly integrated analyses and services for I/O performance analysis.
+In the aforementioned examples, the Darshan tools interface assumes that Slurm is the system workload manager and the preferred way to get start and end times for a job id.
+However, there is also a more generic jobinfo tool interface which serves as a connector-agnostic interface that retrieves basic job metrics (start and end times, node lists, etc) using a site-configurable, prioritized list of connectors.
+
+Consider the end-to-end example shown in Figure \ref{fig:portability-flow}.  
+In this case, an analysis application's purpose is to answer the question, "What was a job's I/O performance?"
+To accomplish this, the analysis takes a job id as its sole input and makes a single call into the pytokio Darshan tool's \texttt{load\_darshanlogs(jobid)} function as described in Section~\ref{sec:architecture/tools}.
+The Darshan tool first uses the jobinfo tool to convert the job id (1) into a start/end time in a site-independent way.
+The jobinfo tool uses the site configuration to use the Slurm connector to convert the job id (2) into a start/end time (3), which is passed back to the Darshan tool (4).
+The Darshan tool then uses the job start time to determine where the job's Darshan log is located in the site-specific repository, and uses this log path (5) to retrieve a connector interface into the log (6).
+The Darshan tool returns this connector interface to the analysis application (7), which extracts the relevant performance metric (8) and returns it to the end user.
+
+Through this entire process, the analysis application's only interface into pytokio was a single call into the Darshan tools interface.
+Beyond this, pytokio was responsible for determining both the proper mechanism to convert a job id into a job start time and the location of Darshan logs on the system.
+Thus, this analysis application is entirely free of site-specific knowledge and can be run at any HPC center to obtain I/O performance telemetry when given a job id.
+The only requirement is that pytokio is installed at the HPC center, and it is correctly configured to reflect that center's site-specific configurations.
+
+\begin{figure}
+    \centering
+    \includegraphics[width=0.7\columnwidth]{portability-flow}
+    %\vspace{-.3in}
+    \caption{TOKIO tools interfaces to enable portability.
+    An analysis application answers the question, "What was a job's I/O performance" and accepts the job's ID as its sole input.
+    The TOKIO tools interface abstracts all of the site-specific information (such as how job ids are mapped to job start times and where Darshan logs are saved) from the higher-level analysis application.
+    Thus, the analysis application can be run at any HPC center without modification provided that center has pytokio installed and correctly configured.
+    }
+    \label{fig:portability-flow}
+    \vspace{-.2in}
+\end{figure}
+
+\subsection{Analysis applications and services} \label{sec:architecture/analysis}
+
+\TODO{Perform statistical, analytical, and visual performance analyses by using TOKIO connectors and tools to combine data from multiple components.}
+
+TOKIO connectors and tools interfaces are simply mechanisms to access I/O telemetry from throughout an HPC center.
+As illustrated in Figure \ref{fig:portability-flow}, a higher-level analysis application was required to actually connect pytokio's interfaces to meaningful insight to an end-user.
+That said, pytokio includes a number of example analysis applications and services that broadly fall into three categories.
+
+\subsubsection{Command-line interfaces to pytokio}
+
+Many connectors and tools present methods and functions that are valuable for users as-is.
+For example, being able to retrieve application-level I/O performance telemetry with a single job id (as was presented in Section \ref{sec:architecture/tools} is an intrinsically useful operation.
+To expose such useful functions directly to users without requiring that they write python, pytokio includes a set of command-line tools that simply convert command-line options into input arguments, pass these arguments to a single pytokio function, and then return the resulting output as ASCII to stdout.
+
+Perhaps the most immediately valuable tools of this category are the command-line interfaces for each connector's serialization method, which allow specific component-level data to be quickly serialized into a generic and portable form.
+For example, the LMT connector allows the contents of the LMT MySQL database to be serialized to a local SQLite file.
+By serializing this data during a time period of interest to a portable format such as SQLite, the LMT data can be analyzed long after the LMT database itself has expired the data.
+Furthermore, because the data is serialized to a standard and portable format, the SQLite database file itself could be shared and analyzed on remote systems for purposes of collaboration or reproducibility.
+
+\subsubsection{Statistical analysis tools}
+
+pytokio arose from a proof-of-concept study that presented the concept of Unified Monitoring and Metrics Interface (UMAMI) diagrams~\cite{Lockwood2017}, and the tools required for a user to generate these diagrams is included in pytokio.
+Figure \ref{fig:umami} is an example of such an UMAMI diagram for a case where poor performance on November 14 coincided with significant server-side bandwidth contention, OSS CPU load, and metadata contention.
+This diagram includes data from Darshan (Performance), LMT (Maximum OSS CPU Load, Average MDS CPU Load, Total Metadata Ops), Lustre health (Most Full OST), the Cray Service Database, and Slurm (both required to calculate the Maximum Job Radius).
+
+To simplify the process of gathering data from all of these disparate sources of telemetry, pytokio includes the \texttt{summarize\_job} command-line tool which acts as a single interface into every connector available.
+When given either a job id or the path to a Darshan log file (which contains the job id), \texttt{summarize\_job} infers the job start and end times, and then uses this data to retrieve the relevant Lustre system traffic and health data for the time during which the job ran.
+It also retrieves the list of nodes that the job used via the Slurm connector and calculates several metrics representing the job's topology when mapped to the dragonfly network.
+All of this data is then flattened into a set of key-value pairs all describing the specified job id and returned to the user in either CSV or JSON format.
+
+
+
+As will be detailed further, aligning performance data from Darshan with Lustre server-side data from LMT allows users to see how each I/O subsystem component affects performance for their jobs.
+
+\begin{figure}[t]
+    \centering
+    \includegraphics[width=1.0\columnwidth]{umami}
+    \vspace{-.3in}
+    \caption{UMAMI diagram of a simulated science campaign of HACC~\cite{Habib2012} simulations performed on NERSC's Cori system.  "Coverage Factor (Bandwidth)" is the fraction of global file system traffic originating from each HACC job, "Maximum Job Radius" represents the overall spread of each job's allocated nodes across the dragonfly network, and the remaining metrics represent server-side Lustre loads.}
+    \label{fig:umami}
+    \vspace{-.2in}
+\end{figure}
+
+pytokio also includes analyses to visualize systematic performance problems.  Figure \ref{fig:lustre-heatmap} shows the output of pytokio's OST load visualizer which revealed that poor stage-out performance from DataWarp to Lustre (which occurs outside the purview of user applications) resulted from poor Lustre striping.  By using pytokio's connector abstractions, both of these analyses were implemented in only several dozen lines of code.
+
+\begin{figure}[t]
+    \centering
+    \includegraphics[width=1.0\columnwidth]{lustre-stageout-performance}
+    \vspace{-.3in}
+    \caption{Write rates of a stage-out operation from DataWarp to Lustre on Cori.  Each horizontal line represents a single OST performing intense I/O and whitespace is OST inactivity.  This visualization prompted the user to manually pre-stripe the DataWarp stage-out destination directory to ensure that the performance of all OSTs was available for subsequent stage-outs.}
+    \label{fig:lustre-heatmap}
+    \vspace{-.2in}
+\end{figure}
+
+\subsubsection{Data and analysis services}

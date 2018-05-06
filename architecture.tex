@@ -4,7 +4,7 @@
     \centering
     \includegraphics[width=0.7\columnwidth]{tokio-architecture-v3}
     \vspace{-.3in}
-    \caption{TOKIO Architecture.  \texttt{tokio.connectors} take input from component-level monitoring tools in their native output formats and expose that data to upstream analysis in standard data formats such as key-value pairs, Pandas dataframes, and NumPy arrays. \texttt{tokio.tools} provide indices, site-specific data placement information, and enhanced usability.}
+    \caption{TOKIO Architecture.  \texttt{tokio.connectors} take input from component-level monitoring tools in their native output formats and expose that data to upstream analysis in standard data formats such as key-value pairs, pandas DataFrames, and NumPy arrays. \texttt{tokio.tools} provide indices, site-specific data placement information, and enhanced usability.}
     \label{fig:tokio-architecture}
     \vspace{-.2in}
 \end{figure}
@@ -64,6 +64,27 @@ On Cray systems, the Gemini Counter Performance Daemon~\cite{Pedretti2013,Brandt
 In practice, the complexity and scale of these network traffic data make them challenging to collect effectively.
 LDMS~\cite{Agelastos2014ldms} has emerged as a scalable infrastructure for collecting these data system-wide, while PAPI has been demonstrated to collect these data on a per-job basis~\cite{Groves2017}.
 
+
+\begin{table*}[tbp]
+\centering
+\caption{TOKIO connectors available in pytokio 0.9}
+\label{tab:connectors}
+\begin{tabular}{|l|c|l|l|}
+\hline
+\textbf{Connector} & \textbf{Parent Class} & \textbf{Component-Level Tool}      & \textbf{Data Provided}               \\ \hline
+CollectdEs         & N/A                   & Elasticsearch with collectd schema & Burst buffer server-side traffic     \\ \hline
+CraySdb            & dict                  & Cray Service Database              & Node network topology                \\ \hline
+Darshan            & dict                  & Darshan 3.0 or newer               & Application-level I/O profiles       \\ \hline
+Hdf5               & h5py.File             & Multiple                           & File system server-side time series  \\ \hline
+LfsOstMap          & dict                  & Lustre \texttt{lctl dl -t}         & Failover status of OSTs and OSSes    \\ \hline
+LfsOstFullness     & dict                  & Lustre \texttt{lfs df}             & Fullness of OSTs                     \\ \hline
+LmtDb              & N/A                   & MySQL with LMT schema              & Lustre server-side traffic           \\ \hline
+Slurm              & dict                  & Slurm                              & Job IDs, node lists, start/end times \\ \hline
+NerscIsdct         & dict                  & ISDCT w/ NERSC directory structure & Burst buffer SSD SMART data          \\ \hline
+NerscJobsDb        & N/A                   & MySQL with NERSC accounting schema & System-wide job workload             \\ \hline
+\end{tabular}
+\end{table*}
+
 \subsection{TOKIO connectors} \label{sec:architecture/connectors}
 
 The foundational layer of TOKIO are \emph{connectors}, which are independent, modular components that provide an interface between the individual component-level tools described above and the higher-level TOKIO layers described later.
@@ -87,7 +108,7 @@ This dramatically simplifies some tasks such as publishing analysis data that or
 The pytokio implementation of TOKIO implements each connector as a Python class.
 Connectors which rely on stateful connections, such as those which load data from databases, generally wrap a variety of database interfaces and may or may not have caching interfaces.
 Connectors which operate statelessly, such as those that load and parse discrete log files, are generally derived from Python dictionaries or lists and self-populate when initialized.
-Where appropriate, these connectors also have methods to return different representations of themselves; for example, some connectors provide a \texttt{to\_dataframe()} method which returns the requested connector data as a Pandas DataFrame.
+Where appropriate, these connectors also have methods to return different representations of themselves; for example, some connectors provide a \texttt{to\_dataframe()} method which returns the requested connector data as a pandas DataFrame.
 
 The initial release of pytokio provides connectors for the following components either available as community-supported open-source tools or pre-installed on Cray systems:
 
@@ -189,66 +210,10 @@ The only requirement is that pytokio is installed at the HPC center, and it is c
     \includegraphics[width=0.7\columnwidth]{portability-flow}
     %\vspace{-.3in}
     \caption{TOKIO tools interfaces to enable portability.
-    An analysis application answers the question, "What was a job's I/O performance" and accepts the job's ID as its sole input.
+    An analysis application answers the question, "What was a job's I/O performance," and it accepts the job's ID as its sole input.
     The TOKIO tools interface abstracts all of the site-specific information (such as how job ids are mapped to job start times and where Darshan logs are saved) from the higher-level analysis application.
     Thus, the analysis application can be run at any HPC center without modification provided that center has pytokio installed and correctly configured.
     }
     \label{fig:portability-flow}
     \vspace{-.2in}
 \end{figure}
-
-\subsection{Analysis applications and services} \label{sec:architecture/analysis}
-
-\TODO{Perform statistical, analytical, and visual performance analyses by using TOKIO connectors and tools to combine data from multiple components.}
-
-TOKIO connectors and tools interfaces are simply mechanisms to access I/O telemetry from throughout an HPC center.
-As illustrated in Figure \ref{fig:portability-flow}, a higher-level analysis application was required to actually connect pytokio's interfaces to meaningful insight to an end-user.
-That said, pytokio includes a number of example analysis applications and services that broadly fall into three categories.
-
-\subsubsection{Command-line interfaces to pytokio}
-
-Many connectors and tools present methods and functions that are valuable for users as-is.
-For example, being able to retrieve application-level I/O performance telemetry with a single job id (as was presented in Section \ref{sec:architecture/tools} is an intrinsically useful operation.
-To expose such useful functions directly to users without requiring that they write python, pytokio includes a set of command-line tools that simply convert command-line options into input arguments, pass these arguments to a single pytokio function, and then return the resulting output as ASCII to stdout.
-
-Perhaps the most immediately valuable tools of this category are the command-line interfaces for each connector's serialization method, which allow specific component-level data to be quickly serialized into a generic and portable form.
-For example, the LMT connector allows the contents of the LMT MySQL database to be serialized to a local SQLite file.
-By serializing this data during a time period of interest to a portable format such as SQLite, the LMT data can be analyzed long after the LMT database itself has expired the data.
-Furthermore, because the data is serialized to a standard and portable format, the SQLite database file itself could be shared and analyzed on remote systems for purposes of collaboration or reproducibility.
-
-\subsubsection{Statistical analysis tools}
-
-pytokio arose from a proof-of-concept study that presented the concept of Unified Monitoring and Metrics Interface (UMAMI) diagrams~\cite{Lockwood2017}, and the tools required for a user to generate these diagrams is included in pytokio.
-Figure \ref{fig:umami} is an example of such an UMAMI diagram for a case where poor performance on November 14 coincided with significant server-side bandwidth contention, OSS CPU load, and metadata contention.
-This diagram includes data from Darshan (Performance), LMT (Maximum OSS CPU Load, Average MDS CPU Load, Total Metadata Ops), Lustre health (Most Full OST), the Cray Service Database, and Slurm (both required to calculate the Maximum Job Radius).
-
-To simplify the process of gathering data from all of these disparate sources of telemetry, pytokio includes the \texttt{summarize\_job} command-line tool which acts as a single interface into every connector available.
-When given either a job id or the path to a Darshan log file (which contains the job id), \texttt{summarize\_job} infers the job start and end times, and then uses this data to retrieve the relevant Lustre system traffic and health data for the time during which the job ran.
-It also retrieves the list of nodes that the job used via the Slurm connector and calculates several metrics representing the job's topology when mapped to the dragonfly network.
-All of this data is then flattened into a set of key-value pairs all describing the specified job id and returned to the user in either CSV or JSON format.
-
-
-
-As will be detailed further, aligning performance data from Darshan with Lustre server-side data from LMT allows users to see how each I/O subsystem component affects performance for their jobs.
-
-\begin{figure}[t]
-    \centering
-    \includegraphics[width=1.0\columnwidth]{umami}
-    \vspace{-.3in}
-    \caption{UMAMI diagram of a simulated science campaign of HACC~\cite{Habib2012} simulations performed on NERSC's Cori system.  "Coverage Factor (Bandwidth)" is the fraction of global file system traffic originating from each HACC job, "Maximum Job Radius" represents the overall spread of each job's allocated nodes across the dragonfly network, and the remaining metrics represent server-side Lustre loads.}
-    \label{fig:umami}
-    \vspace{-.2in}
-\end{figure}
-
-pytokio also includes analyses to visualize systematic performance problems.  Figure \ref{fig:lustre-heatmap} shows the output of pytokio's OST load visualizer which revealed that poor stage-out performance from DataWarp to Lustre (which occurs outside the purview of user applications) resulted from poor Lustre striping.  By using pytokio's connector abstractions, both of these analyses were implemented in only several dozen lines of code.
-
-\begin{figure}[t]
-    \centering
-    \includegraphics[width=1.0\columnwidth]{lustre-stageout-performance}
-    \vspace{-.3in}
-    \caption{Write rates of a stage-out operation from DataWarp to Lustre on Cori.  Each horizontal line represents a single OST performing intense I/O and whitespace is OST inactivity.  This visualization prompted the user to manually pre-stripe the DataWarp stage-out destination directory to ensure that the performance of all OSTs was available for subsequent stage-outs.}
-    \label{fig:lustre-heatmap}
-    \vspace{-.2in}
-\end{figure}
-
-\subsubsection{Data and analysis services}

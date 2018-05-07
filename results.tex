@@ -2,7 +2,7 @@
 
 \TODO{To demonstrate the simplicity of deploying pytokio on different Cray systems, results from both NERSC's Cori and ALCF's Theta systems will also be presented.}
 
-\subsection{Analysis for users} \label{sec:results/users}
+\subsection{Analysis for users \& administrators} \label{sec:results/users}
 
 \begin{figure}
     \centering
@@ -17,8 +17,8 @@
         \label{fig:stragging-ost/heatmap}
     \end{subfigure}
     %\vspace{-.3in}
-    \caption{(a) Correlation between per-file application I/O performance and OST to which each file was mapped (from Darshan); shading indicates statistical significance, with darker bars being more significant.
-    (b) Per-OST I/O performance while (a) was running (from LMT).
+    \caption{(a) Correlation between per-file application I/O performance and the OSTs to which each file was mapped (from Darshan); shading indicates statistical significance, with darker bars being more significant.
+    (b) Per-OST I/O performance measured over the same time that the job in (a) was running (from LMT).
     In both (a) and (b), OST0015 is identified as showing abnormally poor performance.
     }
     \label{fig:straggling-ost}
@@ -41,23 +41,19 @@ Using data from the LMT connector (shown in Figure \ref{fig:stragging-ost/heatma
 Whereas almost all OSTs during this job's write phase were able to complete their I/O between 3:43 AM and 3:44 AM, OST0015 shows a long tail of performance, with relatively little I/O activity between 3:43 AM and 3:44 AM, and I/O activity still occurring as late as 3:48 AM.
 Using both statistical analysis of Darshan data and a visualization of high-resolution LMT data, the poor performance of this job can be confidently attributed to a poorly performing OST.
 
-\begin{figure}
-    \centering
-    \includegraphics[width=0.9\columnwidth]{heatmap_unoptimized_write}
-    \includegraphics[width=0.9\columnwidth]{heatmap_optimized_write}
-    %\vspace{-.3in}
-    \caption{Write rate observed across all 248 OSTs on Cori's scratch file system during DataWarp stage out operations.
-    Top pane shows a naive stage-out operation where the eight files being staged out were copied to a directory with the default stripe width of 1.
-    Bottom pane shows stage-out operation after the output directory was correctly striped.}
-    \label{fig:stageout-unopt}
-    \vspace{-.2in}
-\end{figure}
-
-\subsection{Analysis for system administrators} \label{sec:results/admins}
-
-isdct summary, short-term LMT, darshan-bad-osts
+% \begin{figure}
+%     \centering
+%     \includegraphics[width=0.9\columnwidth]{heatmap_unoptimized_write}
+%     \includegraphics[width=0.9\columnwidth]{heatmap_optimized_write}
+%     %\vspace{-.3in}
+%     \caption{Write rate observed across all 248 OSTs on Cori's scratch file system during DataWarp stage out operations.
+%     Top pane shows a naive stage-out operation where the eight files being staged out were copied to a directory with the default stripe width of 1.
+%     Bottom pane shows stage-out operation after the output directory was correctly striped.}
+%     \label{fig:stageout-unopt}
+%     \vspace{-.2in}
+% \end{figure}
 
 \subsection{Analysis for systems planning} \label{sec:results/planning}
 
-long-term LMT, burst buffer, etc
+\TODO{long-term LMT, burst buffer, etc}
 

@@ -65,23 +65,30 @@ In practice, the complexity and scale of these network traffic data make them ch
 LDMS~\cite{Agelastos2014ldms} has emerged as a scalable infrastructure for collecting these data system-wide, while PAPI has been demonstrated to collect these data on a per-job basis~\cite{Groves2017}.
 
 
-\begin{table*}[tbp]
+\begin{table*}
 \centering
-\caption{TOKIO connectors available in pytokio 0.9}
-\label{tab:connectors}
-\begin{tabular}{|l|c|l|l|}
+\setlength{\extrarowheight}{0pt}
+% \addtolength{\extrarowheight}{\aboverulesep}
+\addtolength{\extrarowheight}{\belowrulesep}
+\setlength{\aboverulesep}{0pt}
+\setlength{\belowrulesep}{0pt}
+\caption{TOKIO connectors available in pytokio 0.9} \label{tab:connectors}
+\begin{tabular}{llll} 
+\toprule
+\textbf{Connector} & \textbf{Parent Class} & \textbf{Component-Level Tool} & \textbf{Data Provided}               \\ 
 \hline
-\textbf{Connector} & \textbf{Parent Class} & \textbf{Component-Level Tool}      & \textbf{Data Provided}               \\ \hline
-CollectdEs         & N/A                   & Elasticsearch with collectd schema & Burst buffer server-side traffic     \\ \hline
-CraySdb            & dict                  & Cray Service Database              & Node network topology                \\ \hline
-Darshan            & dict                  & Darshan 3.0 or newer               & Application-level I/O profiles       \\ \hline
-Hdf5               & h5py.File             & Multiple                           & File system server-side time series  \\ \hline
-LfsOstMap          & dict                  & Lustre \texttt{lctl dl -t}         & Failover status of OSTs and OSSes    \\ \hline
-LfsOstFullness     & dict                  & Lustre \texttt{lfs df}             & Fullness of OSTs                     \\ \hline
-LmtDb              & N/A                   & MySQL with LMT schema              & Lustre server-side traffic           \\ \hline
-Slurm              & dict                  & Slurm                              & Job IDs, node lists, start/end times \\ \hline
-NerscIsdct         & dict                  & ISDCT w/ NERSC directory structure & Burst buffer SSD SMART data          \\ \hline
-NerscJobsDb        & N/A                   & MySQL with NERSC accounting schema & System-wide job workload             \\ \hline
+CraySdb     & dict                   & Cray Service Database              & Node network topology                 \\ 
+Darshan     & dict                   & Darshan 3.0 or newer               & Application-level I/O profiles        \\ 
+LfsOstMap   & dict                   & Lustre \texttt{lctl dl -t}         & Failover status of OSTs and OSSes     \\ 
+LfsOstFullness & dict                & Lustre \texttt{lfs df}             & Fullness of OSTs                      \\ 
+LmtDb       & N/A                    & MySQL with LMT schema              & Lustre server-side traffic            \\ 
+Slurm       & dict                   & Slurm                              & Job IDs, node lists, start/end times  \\ 
+Hdf5        & h5py.File              & Multiple TOKIO services            & File system server-side time series   \\ 
+\hdashline
+CollectdEs  & N/A                    & Elasticsearch with collectd schema & Burst buffer server-side traffic      \\ 
+NerscIsdct  & dict                   & ISDCT w/ NERSC directory structure & Burst buffer SSD SMART data           \\ 
+NerscJobsDb & N/A                    & MySQL with NERSC accounting schema & System-wide job workload              \\
+\bottomrule
 \end{tabular}
 \end{table*}
 
@@ -108,31 +115,17 @@ This dramatically simplifies some tasks such as publishing analysis data that or
 The pytokio implementation of TOKIO implements each connector as a Python class.
 Connectors which rely on stateful connections, such as those which load data from databases, generally wrap a variety of database interfaces and may or may not have caching interfaces.
 Connectors which operate statelessly, such as those that load and parse discrete log files, are generally derived from Python dictionaries or lists and self-populate when initialized.
-Where appropriate, these connectors also have methods to return different representations of themselves; for example, some connectors provide a \texttt{to\_dataframe()} method which returns the requested connector data as a pandas DataFrame.
+Where appropriate, these connectors also have methods to return different representations of themselves; for example, many connectors provide a \texttt{to\_dataframe()} method which returns the requested connector data as a pandas DataFrame.
 
-The initial release of pytokio provides connectors for the following components either available as community-supported open-source tools or pre-installed on Cray systems:
-
-\begin{itemize}
-\item \textbf{Cray SDB} for node topology
-\item \textbf{Slurm} for job ID and node list mappings
-\item \textbf{Darshan} for application-level I/O profiling
-\item \textbf{Lustre} \texttt{lfs} and \texttt{lctl} for file system health
-\item \textbf{LMT} for server-side Lustre loads via the ClusterStor Lustre monitoring tool~\cite{Keopp2014}
-\end{itemize}
-
-In addition, there are connectors for several site-specific implementations of common data sources:
-
-\begin{itemize}
-\item \textbf{NERSC Jobs DB} for job accounting information, stored in a MySQL database using a NERSC-specific schema
-\item \textbf{NERSC ISDCT} for aggregated collections of SMART and ISDCT text outputs, assembled using a NERSC-specific directory structure
-\item \textbf{collectd/Elasticsearch} for DataWarp server-side data collected using collectd, stored in an Elasticsearch database
-\end{itemize}
-
-Although the precise formats of these site-specific connectors assume the schema used by a NERSC-specific aggregation tool, they contain the logic necessary to create more generic connectors for consuming output from sources like smartctl and Elasticsearch.
+The initial release of pytokio, version 0.9, includes the connectors listed in Table \ref{tab:connectors}.
+The first six connectors listed (CraySdb through Slurm) are either pre-installed on Cray XC and ClusterStor systems, or they are widely deployed, open-source tools.
+The latter three connectors (CollectdEs, NerscIsdct, and NerscJobsDb) rely on third-party infrastructure and/or use schemata intrinsic to non-standard tools.
+That said, these three connectors contain the logic necessary to create more generic connectors for consuming output from sources like smartctl and Elasticsearch.
+Finally, the Hdf5 connector provides an interface into the TOKIO Time Series data format, a derivative of HDF5 that is used to store file system traffic data in a connector-agnostic format to simplify the comparison of datasets from different file systems (e.g., Lustre and DataWarp).
 
 \subsection{TOKIO tools} \label{sec:architecture/tools}
 
-\begin{figure}
+\begin{figure}[b]
     \centering
     \includegraphics[width=0.7\columnwidth]{darshan-tool}
     %\vspace{-.3in}

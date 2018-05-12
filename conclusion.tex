@@ -1,5 +1,14 @@
 \section{Conclusion}
 
-\TODO{Furthermore, because pytokio is BSD-licensed, new connectors to site-specific tools can be developed to suit the needs of different centers.  Full pytokio source code, ready-to-deploy packages, and broadly useful analysis applications will all be referenced.}
+The Total Knowledge of I/O (TOKIO) framework and its reference implementation, pytokio, provide a simple, modular approach to the holistic analysis of I/O performance.
+It uses \emph{connector} interfaces to retrieve data from the best-in-class I/O monitoring tools already installed on Cray XC and ClusterStor systems and in production at many HPC centers.
+These connectors, along with site-independent abstractions in TOKIO's \emph{tools} interfaces, enable the creation of portable analysis tools that can be applied by users and administrators to understand I/O performance at many levels of the I/O subsystem.
 
-The conclusion goes here.
+We also describe pytokio's archival data service which enables real-time, operations-focused diagnostic tools such as LMT to serve as sources of long-term, high-resolution time series data.
+Retaining these time series data in the portable TOKIO Time Series file format enables retrospective performance analysis to uncover a variety of new insights about storage systems.
+We have illustrated this with example tools built on pytokio:
+\texttt{darshan\_bad\_ost} detects straggling Lustre OSTs based on Darshan and LMT data, \texttt{darshan\_scoreboard} identifies specific users and applications that are good candidates for migration to burst buffers, and more complex analysis implemented in Jupyter notebooks demonstrate that components of the Cray XC and ClusterStor infrastructure correlate with poor I/O performance.
+
+Because pytokio is BSD-licensed, new connectors to site-specific tools can be developed to suit the needs of different centers as well.
+Full pytokio source code, complete with a comprehensive suite of tests, documentation, and example analyses are all included in the core package repository.
+Furthermore, the pytokio archival data service for Cray XC and ClusterStor are also freely available and specifically designed for easy deployment on any Cray systems.

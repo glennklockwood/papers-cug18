@@ -119,7 +119,7 @@ Where appropriate, these connectors also have methods to return different repres
 
 The initial release of pytokio, version 0.9, includes the connectors listed in Table \ref{tab:connectors}.
 The first six connectors listed (CraySdb through Slurm) are either pre-installed on Cray XC and ClusterStor systems, or they are widely deployed, open-source tools.
-The latter three connectors (CollectdEs, NerscIsdct, and NerscJobsDb) rely on third-party infrastructure and/or use schemata intrinsic to non-standard tools.
+The latter three connectors (CollectdEs, NerscIsdct, and NerscJobsDb) rely on third-party infrastructure and/or use schemata specific to non-standard tools.
 That said, these three connectors contain the logic necessary to create more generic connectors for consuming output from sources like smartctl and Elasticsearch.
 Finally, the Hdf5 connector provides an interface into the TOKIO Time Series data format, a derivative of HDF5 that is used to store file system traffic data in a connector-agnostic format to simplify the comparison of datasets from different file systems (e.g., Lustre and DataWarp).
 

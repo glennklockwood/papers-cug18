@@ -59,9 +59,9 @@ An effective design pattern when building analysis capabilities atop pytokio is 
 
 \subsection{Data and analysis services} \label{sec:apps/services}
 
-A significant challenge to holistic I/O analysis is that a significant number of component-level monitoring tools are designed for use by system operators who perform real-time inspection of system performance and health.
+A challenge in holistic I/O analysis arises as a result of many component-level monitoring tools being designed for system operators who perform real-time inspection of system performance and health.
 Postmortem performance debugging and long-term trend analysis can only be performed if such real-time, component-level monitoring tools are periodically polled and their outputs recorded so that an historic record can be consulted when performing retrospective I/O performance analysis.
-To address this need, pytokio includes several infrastructure components that simplify the process of creating services that automatically poll and archive time-series data, and then serve such archived data at a later date.
+To address this need, pytokio includes several infrastructure components that simplify the process of creating services that automatically poll and archive time-series data, and then serve such archived data through a diversity of simple user interfaces.
 
 \begin{figure}
     \centering

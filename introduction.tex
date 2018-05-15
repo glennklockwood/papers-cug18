@@ -6,15 +6,15 @@ At a high level, we propose three basic axioms of characterizing storage and I/O
 
 \begin{itemize}[leftmargin=*]
 \item \textbf{I/O systems are complex systems that fail in complex ways.}
-High-performance parallel I/O is made possible by increasingly complex subsystems which attempt to satisfy three contradictory goals:
+High-performance parallel I/O is made possible by increasingly complex I/O subsystems which attempt to satisfy three orthogonal goals:
 (1) delivering high bandwidth and low latency in a scalable fashion,
 (2) providing durability and persistence of data, and
 (3) enabling as much POSIX compatibility as possible to enable portability.
 Being complex systems, storage systems also fail in complex ways;
-while an outright outage may be straightforward to diagnose, the more complex failure modes, such as fail-slow~\cite{Gunawi2018}, require commensurately more complex diagnosis procedures.
+while an outright outage may be straightforward to diagnose, the more complex failure modes, such as fail-slow scenarios~\cite{Gunawi2018}, require commensurately more complex diagnosis procedures.
 
 \item \textbf{Complex architectures beget a complex set of essential tools.}
-Storage systems are composed of software, middleware, and hardware created by different a variety of different technology providers who are the world's experts in the components they provide.
+Storage systems are composed of software, middleware, and hardware created by a variety of different technology providers who are the world's experts in the components they provide.
 As a result, they are also best qualified to provide the tools that report on the performance and well-being of those components.
 
 \item \textbf{Broad expertise is required to gain insight from these tools.}
@@ -27,11 +27,11 @@ Such a framework would be built upon the following design criteria, motivated by
 \begin{enumerate}[leftmargin=*]
 \item \label{design:existingtools} \textbf{Use existing tools already in production.}
 A variety of tools already exist to characterize individual components of the I/O subsystem, and different HPC centers often already have many of these tools in production.
-Using existing tools not only allows us to leverage the component-specific expertise of the individuals who created each tool, but it reduces the burden of integrating the framework with HPC centers since it builds upon the tools with which facilities staff are already familiar.
+Using existing tools not only leverages the component-specific expertise of the individuals who created each tool, but it reduces the burden of integrating the framework with HPC centers since it builds upon the tools with which facilities staff are already familiar.
 
 \item \label{design:leavedata} \textbf{Leave data where it is.}
 Attempting to aggregate all component-level telemetric data in a centralized data warehouse often requires coercing the output data to fit a schema, and this process can be lossy.
-Furthermore, the overheads of maintaining a data warehouse suitable for aggregating all data can be high if one is not already deployed at an HPC facility.
+Furthermore, the overheads of maintaining a data warehouse suitable for aggregating all monitoring data can be high if one is not already deployed at an HPC facility.
 Thus, the framework should meet the tools where they are and work with data as it is natively generated. 
 Organizing and querying the data can be achieved by indexing the different data types and data sources rather than replicating and normalizing them.
 
@@ -43,4 +43,4 @@ Furthermore, the framework should not require escalated privileges to be useful;
 
 In previous work, we presented the Total Knowledge of I/O (TOKIO) framework as a formalization of these requirements on a conceptual basis and demonstrated the new insights into I/O performance that such an approach enables~\cite{Lockwood2017}.
 In this work, we present \emph{pytokio}, a reference implementation of the TOKIO framework implemented  in Python 2, which is available as a freely downloadable library.
-We also present accompanying management and analysis tools that the community can use to extract meaningful and holistic insights from the data that is already produced on Cray XC environments.
+We also present accompanying data analysis tools and services that the community can use to extract meaningful and holistic insights from the data that is already produced on Cray XC and ClusterStor platforms.

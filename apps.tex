@@ -1,8 +1,8 @@
 \section{Analysis applications and services} \label{sec:apps}
 
-TOKIO connectors and tools interfaces are simply mechanisms to access I/O telemetry from throughout an HPC center.
-As illustrated in Figure \ref{fig:portability-flow}, a higher-level analysis application was required to actually connect pytokio's interfaces to meaningful insight to an end-user.
-That said, pytokio includes a number of example analysis applications and services that broadly fall into three categories.
+TOKIO's connector and tool interfaces are simply mechanisms to access I/O telemetry from throughout an HPC center.
+As illustrated in Figure \ref{fig:portability-flow}, a higher-level analysis application is required to actually connect pytokio's interfaces to meaningful insight to an end-user.
+To demonstrate how such an analysis application may be built on top of pytokio, pytokio includes a number of example applications and services that broadly fall into three categories: command-line interfaces into pytokio, statistical analysis tools, and data and analysis services.
 
 \subsection{Command-line interfaces to pytokio} \label{sec:apps/cli}
 
@@ -10,10 +10,10 @@ Many connectors and tools present methods and functions that are valuable for us
 For example, being able to retrieve application-level I/O performance telemetry with a single job id (as was presented in Section \ref{sec:architecture/tools} is an intrinsically useful operation.
 To expose such useful functions directly to users without requiring that they write python, pytokio includes a set of command-line tools that simply convert command-line options into input arguments, pass these arguments to a single pytokio function, and then return the resulting output as ASCII to stdout.
 
-Perhaps the most immediately valuable tools of this category are the command-line interfaces for each connector's serialization method, which allow specific component-level data to be quickly serialized into a generic and portable form.
+Perhaps the most immediately valuable tools of this category are the command-line interfaces for each connector's serialization method, which allow specific component-level data to be quickly serialized into a generic and portable format.
 For example, the LMT connector allows the contents of the LMT MySQL database to be serialized to a local SQLite file.
-By serializing this data during a time period of interest to a portable format such as SQLite, the LMT data can be analyzed long after the LMT database itself has expired the data.
-Furthermore, because the data is serialized to a standard and portable format, the SQLite database file itself could be shared and analyzed on remote systems for purposes of collaboration or reproducibility.
+By serializing this data during a time period of interest, LMT data can be analyzed long after the 24-hour window in which LMT database retains data.
+Furthermore, because the data is serialized to a standard and portable format, the SQLite database file itself can be shared and analyzed on remote systems for purposes of collaboration or reproducibility.
 
 \subsection{Statistical analysis tools} \label{sec:apps/analysis}
 
@@ -28,11 +28,12 @@ Furthermore, because the data is serialized to a standard and portable format, t
 \end{figure}
 
 The modularity of TOKIO's connectors and tools interfaces make it a powerful foundation upon which more sophisticated, integrated analyses can be performed.
-pytokio arose from a proof-of-concept study that presented the concept of Unified Monitoring and Metrics Interface (UMAMI) diagrams, a visualization that contextualizes I/O performance with variation in other metrics across the I/O subsystem~\cite{Lockwood2017}.
+For example, pytokio arose from a proof-of-concept study that presented the concept of Unified Monitoring and Metrics Interface (UMAMI) diagrams, a visualization that contextualizes I/O performance with variation in other metrics across the I/O subsystem~\cite{Lockwood2017}.
 The tools required for a user to generate these diagrams is included in pytokio as an example of such a statistical analysis.
 
-Figure \ref{fig:umami} is an example of such an UMAMI diagram that shows a simulated science campaign where a large-scale cosmology application, HACC~\cite{Habib2012}, was run once per day over the course of two weeks.
-The topmost panel (``Performance (GiB/sec)'') shows that the job that ran on December 20 shows significantly less I/O performance (under 200 GiB/sec) than previous days (400 GiB/sec).
+\TODO{Replace Cori UMAMI with Theta UMAMI if possible}
+Figure \ref{fig:umami} is an example of such an UMAMI diagram that shows a simulated science campaign where a large-scale cosmology application, HACC~\cite{Habib2012}, was run once per day over the course of two weeks on NERSC's Cori system and its Lustre file system.
+The topmost panel (``Performance (GiB/sec)'') indicates that the job which ran on December 20 showed significantly less I/O performance (under 200 GiB/sec) than previous days (400 GiB/sec).
 The poor I/O performance on this date coincided with significant server-side bandwidth contention (a low ``Coverage Factor (Bandwidth)'') and metadata contention (high ``Average MDS CPU Load'' and ``Total open ops''), strongly indicating that the performance loss on December 20 was caused by a competing, I/O-intensive workload.
 This diagram includes data obtained through many pytokio connectors: Darshan (Performance), LMT (Maximum OSS CPU Load, Average MDS CPU Load, Total Metadata Ops), Lustre health (Most Full OST), the Cray Service Database, and Slurm (both required to calculate the Maximum Job Radius).
 
@@ -55,12 +56,12 @@ This notebook does the following:
 \end{enumerate}
 
 The Jupyter notebooks included with pytokio are a convenient way to explore data and perform ad-hoc performance analysis with pytokio.
-An effective design pattern when building analysis capabilities atop pytokio is to first prototype a useful analysis in notebook format, and once the analysis proves useful, convert it into a standalone command-line tool that can be used with a greater degree of automation.
+These notebooks are examples of an effective design pattern for building analysis capabilities atop pytokio: a potentially useful analysis is first prototyped in notebook format, and once the analysis methods are sufficiently robust, they are converted into a standalone command-line tool that can be used with a greater degree of automation.
 
 \subsection{Data and analysis services} \label{sec:apps/services}
 
-A challenge in holistic I/O analysis arises as a result of many component-level monitoring tools being designed for system operators who perform real-time inspection of system performance and health.
-Postmortem performance debugging and long-term trend analysis can only be performed if such real-time, component-level monitoring tools are periodically polled and their outputs recorded so that an historic record can be consulted when performing retrospective I/O performance analysis.
+Many component-level monitoring tools are designed for system operators who perform real-time inspection of system performance and health.
+Postmortem performance debugging and long-term trend analysis with these tools can only be performed if such real-time, component-level monitoring tools are periodically polled and their outputs recorded so that an historic record can be consulted at a later date.
 To address this need, pytokio includes several infrastructure components that simplify the process of creating services that automatically poll and archive time-series data, and then serve such archived data through a diversity of simple user interfaces.
 
 \begin{figure}
@@ -82,15 +83,17 @@ To retain these data at full resolution indefinitely, pytokio includes the \text
 
 Based on HDF5, the TOKIO Time Series format organizes time series data from different monitoring tools in their own HDF5 groups, and one such group is schematically depicted in Figure \ref{fig:tokiotimeseries}.
 This group (named \texttt{datatargets}) contains two two-dimensional datasets (\texttt{readrates} and \texttt{writerates}) which contain measurements sampled at a fixed frequency.
-Each row of these datasets corresponds to a single point in time in the time series (e.g., 9:55:35 AM), and each column corresponds to a single component measurement (e.g., OST \#0009).
+Each row of these datasets corresponds to a single point in time in the time series (e.g., 9:55:35 AM), and each column corresponds to a single component being measured (e.g., OST \#0009).
 To index these datasets in time, a single one-dimensional \texttt{timestamps} dataset is also included in each HDF5 group to describe the absolute times corresponding to each row in the other datasets.
-Because data encoded in the TOKIO Time Series format is stored at a fixed frequency, indexing data in time can be done arithmetically using the first timestamp as a reference time and the sampling frequency to calculate a relative offset.
+Because data encoded in the TOKIO Time Series format is stored at a fixed frequency for each group, indexing data in time can be done arithmetically using the first timestamp (to establish an absolute reference) and the sampling frequency (to calculate a relative offset).
 The columns of each dataset are labeled using an HDF5 dataset attribute which can also be indexed.
 
-The \texttt{archive\_lmtdb} tool that generates these TOKIO Time Series files acts as a bridge between the LMT database connector and the HDF5 connector and, at a high level, simply performs data conversion when given a time range and a target LMT database.
-To automate the archival of LMT data into this TOKIO Time Series format, pytokio also includes a simple archival service that creates and maintains a library of TOKIO Time Series files that are organized into a date-indexed directory structure.
+The \texttt{archive\_lmtdb} tool that generates these TOKIO Time Series files acts as a bridge between the LMT database connector and the HDF5 connector.
+At a high level, it performs data conversion when given a time range and a target LMT database; this core function is supplemented by a thin in-memory caching layer for performance and the logic necessary to ensure the idempotency of updates to existing TOKIO Time Series files.
+
+To automate the archival of LMT data into this TOKIO Time Series format, pytokio's ClusterStor companion repository contains a simple archival service that creates and maintains a library of TOKIO Time Series files that are organized into a date-indexed directory structure.
 It creates one TOKIO Time Series file per calendar day, and at a configurable frequency, checks to determine if the day's TOKIO Time Series file is more than an hour out of sync with the LMT database.
-If it is, the pytokio archival service uses \texttt{archive\_lmtdb} to retrieve an hour's worth of new data, update the TOKIO Time Series file, and if necessary, roll over to a new day's file.
+If it is, the pytokio archival service uses \texttt{archive\_lmtdb} to retrieve an hour's worth of new data, update the corresponding day's TOKIO Time Series file, and if necessary, roll over to a new day's file.
 This service is resilient to falling out of sync with the LMT database due to interruptions in service and has minimal dependencies, allowing it to be easily deployed on any Cray ClusterStor platform.
 To date, pytokio and the LMT archival service has been running in production on the Edison XC-30 and Cori XC-40 systems at NERSC and the Theta XC-40 system at the Argonne Leadership Computing Facility.
 
@@ -104,9 +107,10 @@ In all of these cases, the date-based indexing performed by the pytokio archival
 
 The pytokio archival service provides a mechanism by which high time resolution data can be stored on a file system yet still be quickly accessed via date-based file indexing.
 To make these data more accessible to users, pytokio also provides an HDF5 tools interface which serves a very similar function as the Darshan tools interface described in Section \ref{sec:architecture/tools}.
-Given a range of time and a file system name, the \texttt{tools.hdf5} interface locates the correct TOKIO Time Series files containing the date ranges requested, loads the relevant datasets, and stitches the data together into pandas DataFrames indexed by time.
+Given a range of time and a file system name, the \texttt{tools.hdf5} interface locates the correct TOKIO Time Series file(s) containing the date ranges requested, loads the relevant datasets, and stitches the data together into pandas DataFrames indexed by time.
 
 While this functionality is exposed via the Python-based \texttt{tools.hdf5} interface, it is very simple to expose these capabilities through a REST API as well.
-To demonstrate this, pytokio includes a basic Flask-based application wrapper that exposes the aforementioned \texttt{tools.hdf5} interface as a REST endpoint.
-Despite its simplicity, this is an extremely powerful way to connect users with I/O performance data; for example, JavaScript-based web dashboards can query such a pytokio REST service for JSON-encoded data, then display it as an interactive performance plot.
+To demonstrate this, pytokio includes a companion repository that demonstrates a Flask-based application wrapper which exposes the aforementioned \texttt{tools.hdf5} interface as a REST endpoint.
+Despite its simplicity, this is an extremely powerful way to connect users with I/O performance data;
+for example, JavaScript-based web dashboards can query such a pytokio REST service for JSON-encoded data, then display it as an interactive performance plot using Highcharts or D3.
 Similarly, the UMAMI diagram previously described (Figure \ref{fig:umami}) could be statically generated and served on-demand to a web-based frontend to enable quick diagnoses of poorly performing applications.

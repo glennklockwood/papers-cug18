@@ -26,11 +26,11 @@ It is commonly included with all compiled applications at CUG member sites inclu
 Complementary information from client-side monitoring  such as the collection of file system client metric collection enabled by RUR~\cite{Butler2014} also falls in this category.
 
 In all cases, though, understanding application behavior can yield insights into client-side caching and intra-node or intra-application contention~\cite{Lofstead2010} that may not be quantifiable from other parts of the I/O subsystem.
-However, the sensitivity of application performance to jitter caused by continguous performance monitoring on compute nodes results in these application behavior data being scalar in nature; collecting these data over time can be prohibitively disruptive.
+However, the sensitivity of application performance to jitter caused by continuous performance monitoring on compute nodes results in these application behavior data being scalar in nature; collecting these data over time can be prohibitively disruptive.
 
 \subsubsection{Storage system traffic} \label{sec:architecture/components/fs}
 
-The servers that serve and store file data and metadata are inherently shared by all users of an HPC system, and as a result, are intuitively susceptible to resource contention from competing jobs.
+The servers that manage file data and metadata are inherently shared by all users of an HPC system, and as a result, are intuitively susceptible to resource contention from competing jobs.
 It follows that monitoring the traffic and load on each storage system server is valuable for identifying contention-related issues that may be beyond the visibility of individual users and their jobs.
 
 Just as there are a variety of storage system implementations, there are a variety of implementation-specific tools for collecting these data.

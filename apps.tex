@@ -7,7 +7,7 @@ To demonstrate how such an analysis application may be built on top of pytokio, 
 \subsection{Command-line interfaces to pytokio} \label{sec:apps/cli}
 
 Many connectors and tools present methods and functions that are valuable for users as-is.
-For example, being able to retrieve application-level I/O performance telemetry with a single job id (as was presented in Section \ref{sec:architecture/tools} is an intrinsically useful operation.
+For example, being able to retrieve application-level I/O performance telemetry with a single job id (as was presented in Section \ref{sec:architecture/tools}) is an intrinsically useful operation.
 To expose such useful functions directly to users without requiring that they write python, pytokio includes a set of command-line tools that simply convert command-line options into input arguments, pass these arguments to a single pytokio function, and then return the resulting output as ASCII to stdout.
 
 Perhaps the most immediately valuable tools of this category are the command-line interfaces for each connector's serialization method, which allow specific component-level data to be quickly serialized into a generic and portable format.
@@ -19,10 +19,10 @@ Furthermore, because the data is serialized to a standard and portable format, t
 
 \begin{figure}[t]
     \centering
-    \includegraphics[width=1.0\columnwidth]{umami}
+    \includegraphics[width=1.0\columnwidth]{theta-umami}
     \vspace{-.3in}
-    \caption{UMAMI diagram of a simulated science campaign of HACC~\cite{Habib2012} simulations performed on NERSC's Cori system.  
-    "Coverage Factor (Bandwidth)" is the fraction of global file system traffic originating from each HACC job, "Maximum Job Radius" represents the overall spread of each job's allocated nodes across the dragonfly network, and the remaining metrics represent server-side Lustre loads.}
+    \caption{UMAMI diagram of a simulated science campaign of BD-CATS~\cite{patwary2015bd} simulations performed on ALCF's Theta system.  
+    "Coverage Factor (Bandwidth)" is the fraction of global file system traffic originating from each BD-CATS job and the remaining metrics represent server-side Lustre loads.}
     \label{fig:umami}
     \vspace{-.2in}
 \end{figure}
@@ -31,11 +31,11 @@ The modularity of TOKIO's connectors and tools interfaces make it a powerful fou
 For example, pytokio arose from a proof-of-concept study that presented the concept of Unified Monitoring and Metrics Interface (UMAMI) diagrams, a visualization that contextualizes I/O performance with variation in other metrics across the I/O subsystem~\cite{Lockwood2017}.
 The tools required for a user to generate these diagrams is included in pytokio as an example of such a statistical analysis.
 
-\TODO{Replace Cori UMAMI with Theta UMAMI if possible}
-Figure \ref{fig:umami} is an example of such an UMAMI diagram that shows a simulated science campaign where a large-scale cosmology application, HACC~\cite{Habib2012}, was run once per day over the course of two weeks on NERSC's Cori system and its Lustre file system.
-The topmost panel (``Performance (GiB/sec)'') indicates that the job which ran on December 20 showed significantly less I/O performance (under 200 GiB/sec) than previous days (400 GiB/sec).
-The poor I/O performance on this date coincided with significant server-side bandwidth contention (a low ``Coverage Factor (Bandwidth)'') and metadata contention (high ``Average MDS CPU Load'' and ``Total open ops''), strongly indicating that the performance loss on December 20 was caused by a competing, I/O-intensive workload.
-This diagram includes data obtained through many pytokio connectors: Darshan (Performance), LMT (Maximum OSS CPU Load, Average MDS CPU Load, Total Metadata Ops), Lustre health (Most Full OST), the Cray Service Database, and Slurm (both required to calculate the Maximum Job Radius).
+Figure \ref{fig:umami} is an example of such an UMAMI diagram that shows a simulated science campaign where a large-scale particle physics analysis application, BD-CATS~\cite{patwary2015bd}, was run once per day over the course of two weeks on ALCF's Theta system and its Lustre file system.
+The topmost panel (``Performance (GiB/sec)'') indicates that the job which ran on May 11 showed significantly less I/O performance (under 5 GiB/sec) than previous days (40 GiB/sec).
+The poor I/O performance on this date coincided with an extraordinarily high CPU load on one or more Lustre OSSes (a high ``Maximum OSS CPU Load''), indicating the drastic performance loss could be due to competing compute workloads on the Lustre storage servers. Interestingly, for this series of application executions, instances of increased server-side bandwidth contention 
+(a low ``Coverage Factor (Bandwidth)'', e.g., on April 26 or May 6) did not coincide with marked decreases in performance, though this is often speculated to be a leading cause for I/O performance issues on HPC systems.
+This diagram includes data obtained through a number of pytokio connectors: Darshan (Performance), LMT (Maximum OSS CPU Load, Average MDS CPU Load, Total Open Ops) and Lustre health (Most Full OST).
 
 To simplify the process of gathering data from all of these disparate sources of telemetry, pytokio includes the \texttt{summarize\_job} command-line tool which gathers data about a given job using every available connector.
 When given either a list of job ids or a list of paths to Darshan log files (which themselves encode job ids), \texttt{summarize\_job} infers the job start and end times and uses these data to retrieve the relevant Lustre system traffic and health data for the times during which each job ran.
@@ -95,7 +95,7 @@ To automate the archival of LMT data into this TOKIO Time Series format, pytokio
 It creates one TOKIO Time Series file per calendar day, and at a configurable frequency, checks to determine if the day's TOKIO Time Series file is more than an hour out of sync with the LMT database.
 If it is, the pytokio archival service uses \texttt{archive\_lmtdb} to retrieve an hour's worth of new data, update the corresponding day's TOKIO Time Series file, and if necessary, roll over to a new day's file.
 This service is resilient to falling out of sync with the LMT database due to interruptions in service and has minimal dependencies, allowing it to be easily deployed on any Cray ClusterStor platform.
-To date, pytokio and the LMT archival service has been running in production on the Edison XC-30 and Cori XC-40 systems at NERSC and the Theta XC-40 system at the Argonne Leadership Computing Facility.
+To date, pytokio and the LMT archival service has been running in production on the Edison XC-30 and Cori XC-40 systems at NERSC and the Theta XC-40 system at the Argonne Leadership Computing Facility. At NERSC, this archival service is deployed full-time using cron jobs, while at the ALCF it is deployed as part of a broader Jenkins-based continuous integration framework.
 
 The pytokio archival service is sufficiently simple and modular to be able to poll and archive the data from any real-time monitoring tool.
 For example, NERSC also runs a collectd archival service to retain file system traffic data from the DataWarp burst buffer servers on Cori. 

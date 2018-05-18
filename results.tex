@@ -41,7 +41,7 @@ This tool first estimates per-file I/O bandwidths by dividing the total bytes re
 It then uses data from Darshan's Lustre module~\cite{Snyder2016modular} to map these performance estimates to the OSTs over which each file was striped.
 With the list of OSTs and performance measurements corresponding to each OST, the Pearson correlation coefficient is then calculated between performance and each individual OST.
 
-Figure \ref{fig:straggling-ost/correlation} shows the result this correlation analysis for a  slow-running job that performed file-per-process I/O to files with a stripe width of 1 on Cori's Lustre file system.
+Figure \ref{fig:straggling-ost/correlation} shows the result this correlation analysis for a slow-running job that performed file-per-process I/O to files with a stripe width of 1 on NERSC Edison's ``scratch3'' Lustre file system.
 For almost all OSTs, the correlation between performance and OST ID wavers around zero, indicating minimal correlation.
 However, OST0015 stands out in stark contrast; it correlates strongly and negatively with performance. 
 This inverse relationship between file I/O performance and files existing on this OST suggests that this OST is in an unhealthy state and is not delivering the same level of performance as its peers.
